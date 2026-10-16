@@ -10,11 +10,17 @@ depends_on = None
 
 
 def upgrade():
+    # 1. Tabel perusahaan
     op.create_table(
         "companies",
         sa.Column("id", sa.Uuid(), primary_key=True),
         sa.Column("name", sa.String(150), nullable=False),
-        sa.Column("slug", sa.String(100), nullable=False, unique=True),
+        sa.Column(
+            "slug",
+            sa.String(100),
+            nullable=False,
+            unique=True,
+        ),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -23,10 +29,16 @@ def upgrade():
         ),
     )
 
+    # 2. Tabel pengguna
     op.create_table(
         "users",
         sa.Column("id", sa.Uuid(), primary_key=True),
-        sa.Column("email", sa.String(255), nullable=False, unique=True),
+        sa.Column(
+            "email",
+            sa.String(255),
+            nullable=False,
+            unique=True,
+        ),
         sa.Column("password_hash", sa.String(255), nullable=False),
         sa.Column(
             "is_active",
@@ -42,6 +54,7 @@ def upgrade():
         ),
     )
 
+    # 3. Relasi pengguna dengan perusahaan
     op.create_table(
         "company_memberships",
         sa.Column("id", sa.Uuid(), primary_key=True),
@@ -76,8 +89,32 @@ def upgrade():
         ),
     )
 
+    # 4. Indeks untuk mempercepat pencarian membership
+    op.create_index(
+        "ix_company_memberships_company_id",
+        "company_memberships",
+        ["company_id"],
+    )
+
+    op.create_index(
+        "ix_company_memberships_user_id",
+        "company_memberships",
+        ["user_id"],
+    )
+
 
 def downgrade():
+    # Hapus indeks terlebih dahulu
+    op.drop_index(
+        "ix_company_memberships_user_id",
+        table_name="company_memberships",
+    )
+    op.drop_index(
+        "ix_company_memberships_company_id",
+        table_name="company_memberships",
+    )
+
+    # Hapus tabel berdasarkan urutan dependensi
     op.drop_table("company_memberships")
     op.drop_table("users")
     op.drop_table("companies")
