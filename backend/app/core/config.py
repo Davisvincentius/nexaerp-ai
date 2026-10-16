@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     app_name: str = "NexaERP AI"
     app_version: str = "0.1.0"
 
-    database_url: str = "sqlite:///./nexaerp_dev.db"
+    database_url: str
 
     model_config = SettingsConfigDict(
         env_file=".env",
