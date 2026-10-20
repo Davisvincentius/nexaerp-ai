@@ -2,17 +2,16 @@
 name: Deploy NexaERP AI
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+  push:
+    branches:
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
 
+    steps:
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1
         with:
@@ -21,6 +20,23 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           password: ${{ secrets.VPS_PASSWORD }}
           script: |
-            cd /opt/nexaerp
-            git pull origin main
+            set -eu
+
+            if ! command -v docker >/dev/null 2>&1; then
+              echo "Docker belum terpasang di VPS."
+              exit 1
+            fi
+
+            if [ ! -d /opt/nexaerp/.git ]; then
+              mkdir -p /opt/nexaerp
+              git clone https://github.com/Davisvincentius/nexaerp-ai.git /opt/nexaerp
+            else
+              git -C /opt/nexaerp pull origin main
+            fi
+
+            cd /opt/nexaerp/backend
+
+            umask 077
+            printf 'DATABASE_URL=%s\n' '${{ secrets.DATABASE_URL }}' > .env
+
             docker compose up -d --build
